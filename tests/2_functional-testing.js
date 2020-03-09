@@ -6,10 +6,10 @@
 *       
 */
 
-var chaiHttp = require('chai-http');
-var chai = require('chai');
-var assert = chai.assert;
-var server = require('../server');
+const chaiHttp = require('chai-http');
+const chai = require('chai');
+const assert = chai.assert;
+const server = require('../server');
 
 chai.use(chaiHttp);
 
@@ -41,11 +41,27 @@ suite('Functional Tests', function() {
     suite('POST /api/books with title => create book object/expect book object', function() {
       
       test('Test POST /api/books with title', function(done) {
-        //done();
+        chai.request(server)
+          .post('/api/books')
+          .send({title: "Harry Potter and the Sorcerer's Stone"})
+          .end(function(err, res) {
+            assert.equal(res.status, 200);
+            assert.isObject(res.body);
+            assert.equal(res.body.title, "Harry Potter and the Sorcerer's Stone");
+            assert.property(res.body, '_id');
+          });
+        done();
       });
       
       test('Test POST /api/books with no title given', function(done) {
-        //done();
+        chai.request(server)
+          .post('/api/books')
+          .send({})
+          .end(function(err, res) {
+            assert.equal(res.status, 200)
+            assert.equal(res.body.error, 'No book title provided');
+          })
+        done();
       });
       
     });

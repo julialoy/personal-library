@@ -1,14 +1,20 @@
 'use strict';
 
-var express     = require('express');
-var bodyParser  = require('body-parser');
-var cors        = require('cors');
+const express     = require('express');
+const bodyParser  = require('body-parser');
+const cors        = require('cors');
+const helmet    = require('helmet');
 
-var apiRoutes         = require('./routes/api.js');
-var fccTestingRoutes  = require('./routes/fcctesting.js');
-var runner            = require('./test-runner');
+const apiRoutes         = require('./routes/api.js');
+const fccTestingRoutes  = require('./routes/fcctesting.js');
+const runner            = require('./test-runner');
 
-var app = express();
+const app = express();
+
+//Not best practice for environment variables
+//Put here so FCC automated testing can access
+process.env.NODE_ENV='test';
+process.env.PORT=3000;
 
 app.use('/public', express.static(process.cwd() + '/public'));
 
@@ -16,6 +22,12 @@ app.use(cors({origin: '*'})); //USED FOR FCC TESTING PURPOSES ONLY!
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+//Don't allow caching
+app.use(helmet.noCache());
+
+//Provide false X-Powered-by header
+app.use(helmet.hidePoweredBy({ setTo: 'PHP 4.2.0' }));
 
 //Index page (static HTML)
 app.route('/')
