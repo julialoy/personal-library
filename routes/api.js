@@ -21,7 +21,8 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const bookSchema = new Schema({
   title: {type: String, required: true},
-  comments: {type: Array, required: true}
+  comments: {type: Array, required: true},
+  __v: {type: Number, select: false}
 });
 const PersonalLibrary = mongoose.model('PersonalLibrary', bookSchema);
 
@@ -38,8 +39,15 @@ module.exports = function (app) {
 
   app.route('/api/books')
     .get(function (req, res){
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
+      let result = [];
+
+      PersonalLibrary.find()
+        .then( docs => {
+          
+          docs.forEach( doc => result.push({_id: doc._id, title: doc.title, commentcount: doc.comments.length})) ;
+          return res.json(result);
+        })
+        .catch( err => res.json('Could not retrieve books') );
     })
     
     .post(function (req, res, next){
@@ -56,30 +64,46 @@ module.exports = function (app) {
 
       newBook.save()
         .then( () => res.json({ title: newBook.title, _id: newBook._id }))
-        .catch( err => console.error(err));
+        .catch( err => res.json({error: `Could not save ${title} to database`}) );
     })
     
     .delete(function(req, res){
-      //if successful response will be 'complete delete successful'
+      PersonalLibrary.deleteMany()
+        .then( () => res.json('complete delete successful') )
+        .catch( err => res.json('complete delete unsuccessful') );
     });
 
 
 
   app.route('/api/books/:id')
-    .get(function (req, res){
-      var bookid = req.params.id;
-      //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
-    })
+    .get(function (req, res, next){
+      const bookId = req.params.id;
+      
+      PersonalLibrary.findById({_id: bookId})
+        .then( doc => res.json(doc) )
+        .catch( err =>  res.json('no book exists') );
+   })
     
-    .post(function(req, res){
-      var bookid = req.params.id;
-      var comment = req.body.comment;
-      //json res format same as .get
+    .post(function(req, res, next){
+      const bookId = req.params.id;
+      const comment = req.body.comment;
+
+      PersonalLibrary.findById({_id: bookId})
+        .then( doc => {
+          doc.comments.push(comment);
+          doc.save()
+            .then( () => res.json(doc) )
+            .catch( err => next(err) );
+        })
+        .catch( err => res.json('no book exists') );
     })
     
     .delete(function(req, res){
-      var bookid = req.params.id;
-      //if successful response will be 'delete successful'
+      const bookId = req.params.id;
+
+      PersonalLibrary.deleteOne({_id: bookId})
+        .then( () => res.json('delete successful') )
+        .catch( err => res.json('no book exists') );
     });
   
 };
